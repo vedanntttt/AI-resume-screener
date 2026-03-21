@@ -1,6 +1,7 @@
 import os
 import json
 import io
+import re
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.responses import HTMLResponse
 import pdfplumber
@@ -46,6 +47,19 @@ def extract_text_from_pdf(pdf_bytes: bytes) -> str:
         print(f"Error extracting text: {e}")
     return text
 
+def extract_metadata(text: str) -> dict:
+    # Regex patterns for Email, Phone, and LinkedIn
+    email = re.search(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
+    # Simple North American/International phone format
+    phone = re.search(r'\(?\b[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b', text)
+    linkedin = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|profile)\/[a-zA-Z0-9_-]+/?', text)
+    
+    return {
+        "email": email.group(0) if email else "N/A",
+        "phone": phone.group(0) if phone else "N/A",
+        "linkedin": linkedin.group(0) if linkedin else "N/A"
+    }
+
 def build_prompt(jd: str, resume_text: str) -> str:
     prompt = f"""You are an expert technical recruiter analyzing a resume against a job description.
 Your goal is to score the candidate's fit on a scale of 0 to 100 and identify key strengths and gaps.
@@ -60,7 +74,7 @@ Analyze the resume against the job description. Respond ONLY with a valid JSON o
 {{
   "score": <integer between 0 and 100>,
   "strengths": "<short string summarizing 2-3 key matching skills/experiences>",
-  "gaps": "<short string summarizing 1-2 missing skills or mismatches>",
+  "gaps": "<short string summarizing 2-3 missing skills or mismatches>",
   "recommendation": "<short string: 'Strong Fit', 'Moderate Fit', or 'Not Fit'>"
 }}
 """
@@ -125,6 +139,11 @@ async def screen_resume(jd: str = Form(...), file: UploadFile = File(...)):
             candidate_name = candidate_name[:-4]
             
         result["candidate_name"] = candidate_name
+        
+        # Attach extracted metadata
+        metadata = extract_metadata(resume_text)
+        result.update(metadata)
+        
         return result
         
     except Exception as e:
