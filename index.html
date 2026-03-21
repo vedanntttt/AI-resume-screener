@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Screener</title>
+    <!-- Use Tailwind CSS for rich aesthetics -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .dragover { @apply border-blue-500 bg-blue-50; }
+        .row-strong { @apply bg-green-50; }
+        .row-moderate { @apply bg-amber-50; }
+        .row-notfit { @apply bg-rose-50; }
+        /* Micro-animations and transitions */
+        .glass-panel {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 min-h-screen p-6 md:p-12 font-sans text-slate-800">
+    <div class="max-w-6xl mx-auto space-y-10">
+        <!-- Header -->
+        <div class="text-center space-y-3">
+            <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500 tracking-tight">AI Resume Screener</h1>
+            <p class="text-slate-500 text-lg font-medium">Batch analyze candidate resumes against job descriptions with Gemini AI</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: Inputs -->
+            <div class="lg:col-span-5 space-y-6 flex flex-col">
+                <!-- Job Description Input -->
+                <div class="glass-panel p-6 rounded-3xl overflow-hidden relative group transition-all duration-300 hover:shadow-lg">
+                    <h2 class="text-lg font-bold mb-4 text-slate-800 flex items-center">
+                        <span class="bg-blue-100 text-blue-700 w-8 h-8 rounded-lg flex items-center justify-center mr-3 shadow-inner">1</span>
+                        Job Description
+                    </h2>
+                    <textarea id="jd-input" rows="7" class="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 resize-none outline-none transition-all placeholder-slate-400 bg-white" placeholder="Paste the job requirements here..."></textarea>
+                </div>
+
+                <!-- Resumes Upload -->
+                <div class="glass-panel p-6 rounded-3xl transition-all duration-300 hover:shadow-lg flex-grow">
+                    <h2 class="text-lg font-bold mb-4 text-slate-800 flex items-center">
+                        <span class="bg-blue-100 text-blue-700 w-8 h-8 rounded-lg flex items-center justify-center mr-3 shadow-inner">2</span>
+                        Upload Resumes
+                    </h2>
+                    <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-2xl p-8 h-48 flex flex-col justify-center items-center text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-all duration-300 relative group">
+                        <input type="file" id="file-input" multiple accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <div class="text-slate-400 group-hover:text-blue-500 mb-3 transition-colors duration-300 transform group-hover:scale-110">
+                            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <p class="font-semibold text-slate-700">Click or drag & drop PDFs</p>
+                        <span class="text-sm font-medium text-blue-600 bg-blue-100 px-3 py-1 rounded-full mt-3 inline-block" id="file-count">0 files selected</span>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button id="analyze-btn" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-500/30 cursor-pointer transform transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none">
+                    <span class="flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Analyze Resumes
+                    </span>
+                </button>
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="lg:col-span-7 glass-panel rounded-3xl flex flex-col h-[800px] shadow-xl border-slate-200 overflow-hidden">
+                <!-- Result Header & Actions -->
+                <div class="p-6 bg-white/50 border-b border-slate-100 flex justify-between items-center backdrop-blur-sm z-20">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                        Analysis Results
+                    </h2>
+                    <button id="export-csv" class="text-sm bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold py-2 px-4 rounded-xl transition-colors opacity-0 pointer-events-none flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Export CSV
+                    </button>
+                </div>
+
+                <!-- Progress Indicator -->
+                <div id="progress-container" class="px-6 py-4 bg-blue-50/50 border-b border-blue-100 hidden">
+                    <div class="flex justify-between text-sm font-semibold text-blue-800 mb-2">
+                        <div class="flex items-center">
+                            <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="progress-text">Processing...</span>
+                        </div>
+                        <span id="progress-percent" class="font-bold">0%</span>
+                    </div>
+                    <div class="w-full bg-blue-200/50 rounded-full h-2 overflow-hidden shadow-inner">
+                        <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Table Area -->
+                <div class="flex-grow overflow-auto bg-white/40">
+                    <table class="w-full text-left">
+                        <!-- Sticky header to stay on top while scrolling -->
+                        <thead class="bg-slate-50/90 backdrop-blur-md sticky top-0 border-b border-slate-200 shadow-[0_2px_10px_-3px_rgba(0,0,0,0.05)] z-10">
+                            <tr>
+                                <th class="py-4 px-6 font-semibold text-xs tracking-wider uppercase text-slate-500 w-16 text-center">Rank</th>
+                                <th class="py-4 px-6 font-semibold text-xs tracking-wider uppercase text-slate-500 w-1/4">Candidate</th>
+                                <th class="py-4 px-6 font-semibold text-xs tracking-wider uppercase text-slate-500 w-24 text-center">Score</th>
+                                <th class="py-4 px-6 font-semibold text-xs tracking-wider uppercase text-slate-500">Analysis Breakdown</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-body" class="divide-y divide-slate-100">
+                            <!-- Empty State -->
+                            <tr>
+                                <td colspan="4" class="text-center py-20 text-slate-400">
+                                    <svg class="w-16 h-16 mx-auto text-slate-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    <p class="text-lg font-medium">Awaiting Data</p>
+                                    <p class="text-sm mt-1 text-slate-400">Upload resumes and enter a job description to begin</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const jdInput = document.getElementById('jd-input');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileCount = document.getElementById('file-count');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const resultsBody = document.getElementById('results-body');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBarEl = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const progressPercent = document.getElementById('progress-percent');
+        const exportCsvBtn = document.getElementById('export-csv');
+
+        let selectedFiles = [];
+        let allResults = [];
+
+        // Drag and Drop Effects
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('bg-blue-50', 'border-blue-500'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('bg-blue-50', 'border-blue-500'), false);
+        });
+
+        dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+        fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+        function handleFiles(files) {
+            selectedFiles = [...files].filter(f => f.type === 'application/pdf');
+            const count = selectedFiles.length;
+            fileCount.textContent = count === 1 ? '1 file selected' : `${count} files selected`;
+            checkDisabledState();
+            
+            // Micro animation on file drop
+            fileCount.classList.remove('scale-110');
+            setTimeout(() => fileCount.classList.add('scale-110'), 50);
+            setTimeout(() => fileCount.classList.remove('scale-110'), 300);
+        }
+        
+        jdInput.addEventListener('input', checkDisabledState);
+
+        function checkDisabledState() {
+            analyzeBtn.disabled = !(selectedFiles.length > 0 && jdInput.value.trim().length > 0);
+        }
+
+        analyzeBtn.addEventListener('click', async () => {
+            const jd = jdInput.value.trim();
+            if (!jd || selectedFiles.length === 0) return;
+
+            // UI State change to Processing
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+            `;
+            allResults = [];
+            resultsBody.innerHTML = '';
+            exportCsvBtn.classList.remove('opacity-100', 'pointer-events-auto');
+            exportCsvBtn.classList.add('opacity-0', 'pointer-events-none');
+            progressContainer.classList.remove('hidden');
+            
+            let completed = 0;
+            updateProgress(0, selectedFiles.length);
+
+            // Process one by one (or could use Promise.all for truly parallel processing, 
+            // but sequential prevents rate limiting for free API tiers)
+            for (const file of selectedFiles) {
+                const formData = new FormData();
+                formData.append('jd', jd);
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('/screen-resume', { method: 'POST', body: formData });
+                    if (!response.ok) throw new Error('API Error');
+                    const jsonResult = await response.json();
+                    allResults.push(jsonResult);
+                } catch (error) {
+                    console.error('Error on', file.name, error);
+                    allResults.push({
+                        candidate_name: file.name,
+                        score: 0,
+                        strengths: "Failed to process",
+                        gaps: "API or Network Error",
+                        recommendation: "Error"
+                    });
+                }
+                completed++;
+                updateProgress(completed, selectedFiles.length);
+                // Render incrementally so user doesn't wait till the very end to see data
+                renderResults(); 
+            }
+
+            // Restore UI state
+            analyzeBtn.innerHTML = `
+                <span class="flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Re-Analyze Resumes
+                </span>
+            `;
+            analyzeBtn.disabled = false;
+            
+            setTimeout(() => {
+                progressContainer.classList.add('hidden');
+            }, 1500);
+
+            // Show export button if results exist
+            if(allResults.length > 0) {
+                exportCsvBtn.classList.remove('opacity-0', 'pointer-events-none');
+                exportCsvBtn.classList.add('opacity-100', 'pointer-events-auto');
+            }
+        });
+
+        function updateProgress(completed, total) {
+            const pct = Math.round((completed / total) * 100);
+            progressText.textContent = `Scoring ${completed} of ${total} resumes...`;
+            progressPercent.textContent = `${pct}%`;
+            progressBarEl.style.width = `${pct}%`;
+        }
+
+        function renderResults() {
+            // Sort by score descending automatically
+            const sortedResults = [...allResults].sort((a, b) => b.score - a.score);
+            
+            resultsBody.innerHTML = sortedResults.map((res, index) => {
+                let rowColorClass = '';
+                let badgeClass = '';
+                let scoreTextClass = '';
+                
+                const recLower = String(res.recommendation).toLowerCase();
+                
+                if (recLower.includes('strong') || res.score >= 75) {
+                    rowColorClass = 'hover:bg-green-50/60 bg-white';
+                    badgeClass = 'bg-green-100 text-green-800 border-green-200';
+                    scoreTextClass = 'text-green-600';
+                } else if (recLower.includes('moderate') || res.score >= 50) {
+                    rowColorClass = 'hover:bg-amber-50/60 bg-white';
+                    badgeClass = 'bg-amber-100 text-amber-800 border-amber-200';
+                    scoreTextClass = 'text-amber-500';
+                } else {
+                    rowColorClass = 'hover:bg-rose-50/60 bg-slate-50/40';
+                    badgeClass = 'bg-rose-100 text-rose-800 border-rose-200';
+                    scoreTextClass = 'text-rose-500';
+                }
+
+                return `
+                <tr class="transition-all duration-300 border-b border-slate-100 ${rowColorClass}">
+                    <td class="py-5 px-6 font-bold text-slate-500 text-center">#${index + 1}</td>
+                    <td class="py-5 px-6">
+                        <div class="font-bold text-slate-800 text-base truncate w-48" title="${res.candidate_name}">${res.candidate_name}</div>
+                        <div class="inline-block mt-2 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase border ${badgeClass}">
+                            ${res.recommendation}
+                        </div>
+                    </td>
+                    <td class="py-5 px-6 text-center">
+                        <div class="text-3xl font-black tracking-tighter ${scoreTextClass}">
+                            ${res.score}<span class="text-sm font-semibold text-slate-400 opacity-50 ml-0.5">/100</span>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-sm">
+                        <div class="mb-2 bg-green-50/40 p-2.5 rounded-lg border border-green-100/50">
+                            <span class="font-bold text-green-700 flex items-center mb-1 text-xs uppercase tracking-wider">
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                Strengths
+                            </span> 
+                            <span class="text-slate-600 leading-snug">${res.strengths}</span>
+                        </div>
+                        <div class="bg-rose-50/40 p-2.5 rounded-lg border border-rose-100/50">
+                            <span class="font-bold text-rose-700 flex items-center mb-1 text-xs uppercase tracking-wider">
+                                <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                Missing / Gaps
+                            </span> 
+                            <span class="text-slate-600 leading-snug">${res.gaps}</span>
+                        </div>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        exportCsvBtn.addEventListener('click', () => {
+            if (allResults.length === 0) return;
+            const headers = ['Rank', 'Candidate', 'Score', 'Recommendation', 'Strengths', 'Gaps'];
+            let csv = headers.join(',') + '\n';
+            
+            const sortedResults = [...allResults].sort((a, b) => b.score - a.score);
+            
+            sortedResults.forEach((res, i) => {
+                const row = [
+                    i + 1,
+                    `"${String(res.candidate_name).replace(/"/g, '""')}"`,
+                    res.score,
+                    `"${String(res.recommendation).replace(/"/g, '""')}"`,
+                    `"${String(res.strengths).replace(/"/g, '""')}"`,
+                    `"${String(res.gaps).replace(/"/g, '""')}"`
+                ];
+                csv += row.join(',') + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resume_screening_results_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+    </script>
+</body>
+</html>
