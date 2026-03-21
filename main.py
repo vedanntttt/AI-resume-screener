@@ -8,6 +8,7 @@ import pdfplumber
 from groq import Groq
 from dotenv import load_dotenv
 from pathlib import Path
+import httpx
 
 # Explicitly load .env from the same directory as this script
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
@@ -143,6 +144,17 @@ async def screen_resume(jd: str = Form(...), file: UploadFile = File(...)):
         # Attach extracted metadata
         metadata = extract_metadata(resume_text)
         result.update(metadata)
+        
+        # Trigger outbound webhook if configured
+        webhook_url = os.getenv("OUTBOUND_WEBHOOK_URL")
+        if webhook_url:
+            try:
+                # Use httpx to make an async POST request
+                async with httpx.AsyncClient() as http_client:
+                    await http_client.post(webhook_url, json=result)
+                print(f"✅ Successfully sent webhook to {webhook_url}")
+            except Exception as e:
+                print(f"⚠️ Failed to send webhook to {webhook_url}: {e}")
         
         return result
         
