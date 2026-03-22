@@ -1,6 +1,6 @@
 # AI Resume Screener
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://your-app-name.onrender.com)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)]([https://ai-resume-screener-wb84.onrender.com])
 
 AI Resume Screener is a FastAPI-based web application that automatically screens resumes against a job description using Groq's Llama 3 model. It extracts text from PDF resumes and provides a match score, strengths, gaps, and a recommendation.
 
